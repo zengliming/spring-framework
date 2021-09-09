@@ -547,42 +547,64 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			StartupStep contextRefresh = this.applicationStartup.start("spring.context.refresh");
 
 			// Prepare this context for refreshing.
+			// 1: 刷新预处理
+			// 设置Spring容器的启动时间，撤销关闭状态，开启活跃状态。
+			// 初始化属性源信息(Property)
+			// 验证环境信息里一些必须存在的属性
+			// Prepare this context for refreshing.
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
+			// Tell the subclass to refresh the internal bean factory.
+			// 2:
+			// a) 创建IOC容器（DefaultListableBeanFactory）
+			// b) 加载解析XML文件（最终存储到Document对象中）
+			// c) 读取Document对象，并完成BeanDefinition的加载和注册工作
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
+			// 3: 对IOC容器做一些预处理（设置一些公共属性）
 			prepareBeanFactory(beanFactory);
 
 			try {
+				// 4.
 				// Allows post-processing of the bean factory in context subclasses.
 				postProcessBeanFactory(beanFactory);
 
 				StartupStep beanPostProcess = this.applicationStartup.start("spring.context.beans.post-process");
 				// Invoke factory processors registered as beans in the context.
+				// 5:调用BeanFactoryPostProcessor后置处理器对BeanDefinition处理
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
+				// 6: 注册BeanPostProcessor后置处理器
 				registerBeanPostProcessors(beanFactory);
 				beanPostProcess.end();
 
 				// Initialize message source for this context.
+				// 7: 初始化一些消息源（比如处理国际化的i18n等消息资源）
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				// 8: 初始化应用事件广播器
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
+				// 9：初始化一些特殊的bean
 				onRefresh();
 
 				// Check for listener beans and register them.
+				// 10：注册一些监听器
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				registerListeners();
+				// 11：实例化剩余的单例bean（非懒加载方式）
+				// 注意事项： Bean的IOC、ID和AOP都是发生在此步骤
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
+				// 12： 完成刷新时，需要发布对应的事件
 				finishRefresh();
 			}
 
@@ -618,7 +640,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	protected void prepareRefresh() {
 		// Switch to active.
 		this.startupDate = System.currentTimeMillis();
+		// 标识容器是否被关闭
 		this.closed.set(false);
+		// 标识容器是否活跃
 		this.active.set(true);
 
 		if (logger.isDebugEnabled()) {
@@ -638,12 +662,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		getEnvironment().validateRequiredProperties();
 
 		// Store pre-refresh ApplicationListeners...
+		// 早起的监听器 refresh之前注册的
 		if (this.earlyApplicationListeners == null) {
 			this.earlyApplicationListeners = new LinkedHashSet<>(this.applicationListeners);
 		}
 		else {
 			// Reset local application listeners to pre-refresh state.
+			// 清楚refresh时注册的监听器
 			this.applicationListeners.clear();
+			// 将早期的监听器添加进来
 			this.applicationListeners.addAll(this.earlyApplicationListeners);
 		}
 
